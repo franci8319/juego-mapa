@@ -1,0 +1,28 @@
+{
+  "name": "juego-mapa",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "flag-icons": "^7",
+    "i18n-iso-countries": "^7",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-simple-maps": "^3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@vitejs/plugin-react": "^4",
+    "jsdom": "^25",
+    "vite": "^5",
+    "vitest": "^2"
+  }
+}
