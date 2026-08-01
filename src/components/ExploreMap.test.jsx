@@ -132,4 +132,20 @@ describe('ExploreMap', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Europa' }));
     expect(screen.getByText('🇪🇸')).toBeInTheDocument();
   });
+
+  it('speaks the country name aloud when a dataset country is tapped', () => {
+    window.speechSynthesis = { cancel: vi.fn(), speak: vi.fn() };
+    global.SpeechSynthesisUtterance = vi.fn(function (text) {
+      this.text = text;
+    });
+
+    render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
+    fireEvent.click(screen.getByTestId('geo-724'));
+
+    expect(SpeechSynthesisUtterance).toHaveBeenCalledWith('España');
+
+    delete window.speechSynthesis;
+    delete global.SpeechSynthesisUtterance;
+  });
 });

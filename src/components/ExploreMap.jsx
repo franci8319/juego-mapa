@@ -7,6 +7,7 @@ import { matchesGeography } from '../lib/isoMap.js';
 import { getCentroid, hasMapGeometry, worldAtlasTopology } from '../lib/worldAtlas.js';
 import { getContinentView } from '../lib/continentView.js';
 import { getFlagEmoji } from '../lib/flagEmoji.js';
+import { speak } from '../lib/speech.js';
 import FlagIcon from './FlagIcon.jsx';
 
 // Below this zoom level the whole world (or most of it) is visible, and
@@ -45,8 +46,10 @@ export default function ExploreMap() {
     const datasetCountry = findDatasetCountry(geo.id);
     if (datasetCountry) {
       setSelected({ inDataset: true, country: datasetCountry, unlocked: getUnlockedIds().includes(datasetCountry.id) });
+      speak(datasetCountry.name);
     } else {
       setSelected({ inDataset: false, name: geo.properties.name });
+      speak(geo.properties.name);
     }
   };
 
