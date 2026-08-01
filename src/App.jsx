@@ -5,7 +5,6 @@ import ExploreMap from './components/ExploreMap.jsx';
 import FlagToCountry from './components/FlagToCountry.jsx';
 import MainMenu from './components/MainMenu.jsx';
 import MapGame from './components/MapGame.jsx';
-import MemoryGame from './components/MemoryGame.jsx';
 
 export default function App() {
   const [screen, setScreen] = useState('menu');
@@ -22,7 +21,6 @@ export default function App() {
       {screen === 'flag-to-country' && <FlagToCountry />}
       {screen === 'country-to-flag' && <CountryToFlag />}
       {screen === 'map-game' && <MapGame />}
-      {screen === 'memory' && <MemoryGame />}
       {screen === 'explore' && <ExploreMap />}
       {screen === 'album' && <Album />}
     </main>

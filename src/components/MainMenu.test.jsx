@@ -9,7 +9,6 @@ describe('MainMenu', () => {
     expect(screen.getByRole('button', { name: 'Bandera → País' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'País → Bandera' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mapa' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Memory' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Explorar mapa' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mi álbum' })).toBeInTheDocument();
   });
