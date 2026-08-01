@@ -93,4 +93,14 @@ describe('ExploreMap', () => {
     expect(screen.getByText('China')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
+
+  it('clears the stale country panel when switching continents', () => {
+    render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
+    fireEvent.click(screen.getByTestId('geo-724'));
+    expect(screen.getByText('España')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '◀ Elegir otro continente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
+    expect(screen.queryByText('España')).not.toBeInTheDocument();
+  });
 });

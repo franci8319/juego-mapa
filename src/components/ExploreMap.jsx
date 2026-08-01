@@ -49,7 +49,13 @@ export default function ExploreMap() {
 
   return (
     <section className="game explore-map">
-      <button type="button" onClick={() => setContinent(null)}>
+      <button
+        type="button"
+        onClick={() => {
+          setContinent(null);
+          setSelected(null);
+        }}
+      >
         ◀ Elegir otro continente
       </button>
       <ComposableMap>
