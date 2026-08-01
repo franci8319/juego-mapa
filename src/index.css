@@ -207,3 +207,7 @@ button:disabled {
   justify-content: center;
   gap: 0.5rem;
 }
+
+.map-game-zoom {
+  transition: transform 4s ease-in-out;
+}

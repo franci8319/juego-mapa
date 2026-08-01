@@ -4,7 +4,7 @@ import { paises } from '../data/paises.js';
 import { pickRandomCountry } from '../lib/quiz.js';
 import { matchesGeography } from '../lib/isoMap.js';
 import { unlockCountry } from '../lib/progress.js';
-import { hasMapGeometry, worldAtlasTopology } from '../lib/worldAtlas.js';
+import { getCentroid, hasMapGeometry, worldAtlasTopology } from '../lib/worldAtlas.js';
 import { speak } from '../lib/speech.js';
 import AnswerFeedback from './AnswerFeedback.jsx';
 import FlagIcon from './FlagIcon.jsx';
@@ -17,6 +17,13 @@ const mappableCountries = paises.filter((pais) => hasMapGeometry(pais.flagCode))
 
 const ADVANCE_DELAY_MS = 1800;
 const WRONG_FLASH_MS = 700;
+// Keep ZOOM_DURATION_MS in sync with the transition duration on
+// `.map-game-zoom` in src/index.css — they drive the same animation from
+// two different places (React's click-lock timer and the CSS transition).
+const ZOOM_DURATION_MS = 4000;
+const ZOOM_START_DELAY_MS = 50; // lets the world-view frame paint before animating to the target
+const TARGET_ZOOM = 4;
+const WORLD_VIEW = { center: [0, 0], zoom: 1 };
 
 function announceTarget(target) {
   return ['Encuentra este país en el mapa', target.name];
@@ -26,6 +33,8 @@ export default function MapGame() {
   const [target, setTarget] = useState(() => pickRandomCountry(mappableCountries));
   const [feedback, setFeedback] = useState(null);
   const [wrongGeoId, setWrongGeoId] = useState(null);
+  const [mapView, setMapView] = useState(WORLD_VIEW);
+  const [isZooming, setIsZooming] = useState(true);
 
   // Must run BEFORE the feedback effect below: on auto-advance, `target`
   // and `feedback` are both updated in the same batched tick, and this
@@ -35,6 +44,25 @@ export default function MapGame() {
   // two effects would make auto-advanced questions go silent.
   useEffect(() => {
     speak(announceTarget(target));
+  }, [target]);
+
+  // Resets the map to the world view, then (after a short delay so the
+  // browser paints that reset frame first) animates toward the target's
+  // real centroid — the CSS transition on `.map-game-zoom` is what makes
+  // this a smooth zoom rather than an instant jump. Clicks are locked for
+  // the whole animation window via `isZooming`.
+  useEffect(() => {
+    setMapView(WORLD_VIEW);
+    setIsZooming(true);
+    const centroid = getCentroid(target.flagCode);
+    const startZoomTimer = setTimeout(() => {
+      setMapView(centroid ? { center: centroid, zoom: TARGET_ZOOM } : WORLD_VIEW);
+    }, ZOOM_START_DELAY_MS);
+    const unlockTimer = setTimeout(() => setIsZooming(false), ZOOM_START_DELAY_MS + ZOOM_DURATION_MS);
+    return () => {
+      clearTimeout(startZoomTimer);
+      clearTimeout(unlockTimer);
+    };
   }, [target]);
 
   // Must run AFTER the "announce target" effect above — see the comment
@@ -59,7 +87,7 @@ export default function MapGame() {
 
   const handleGeographyClick = useCallback(
     (geo) => {
-      if (feedback?.correct) return;
+      if (feedback?.correct || isZooming) return;
       if (matchesGeography(target.flagCode, geo.id)) {
         unlockCountry(target.id);
         setFeedback({ correct: true, message: `¡Genial! Es ${target.name}` });
@@ -69,7 +97,7 @@ export default function MapGame() {
         setWrongGeoId(geo.id);
       }
     },
-    [target, feedback]
+    [target, feedback, isZooming]
   );
 
   const replay = useCallback(() => {
@@ -83,7 +111,13 @@ export default function MapGame() {
         🔊
       </button>
       <ComposableMap>
-        <ZoomableGroup zoom={1} minZoom={1} maxZoom={8}>
+        <ZoomableGroup
+          className="map-game-zoom"
+          center={mapView.center}
+          zoom={mapView.zoom}
+          minZoom={1}
+          maxZoom={8}
+        >
           <Geographies geography={worldAtlasTopology}>
             {({ geographies }) =>
               geographies.map((geo) => (

@@ -50,6 +50,7 @@ vi.mock('../lib/worldAtlas.js', () => ({
     ],
   },
   hasMapGeometry: (flagCode) => flagCode === 'es' || flagCode === 'fr',
+  getCentroid: () => [0, 0],
 }));
 
 // react-simple-maps' ZoomableGroup wires a native "mousedown.zoom" d3-zoom
@@ -59,6 +60,8 @@ vi.mock('../lib/worldAtlas.js', () => ({
 // d3-zoom never listens for, so it safely exercises the same onClick handler
 // React relies on without touching d3-zoom's separate gesture listener.
 // (Same pattern already used in ExploreMap.test.jsx.)
+
+const ZOOM_LOCK_MS = 4050; // ZOOM_START_DELAY_MS (50) + ZOOM_DURATION_MS (4000)
 
 describe('MapGame', () => {
   beforeEach(() => {
@@ -87,8 +90,28 @@ describe('MapGame', () => {
     expect(screen.getByRole('button', { name: 'Repetir en voz alta' })).toBeInTheDocument();
   });
 
-  it('shows "Prueba con otra" on a wrong click, keeps the question open, and does not unlock', () => {
+  it('locks map clicks during the zoom-in animation', () => {
     render(<MapGame />);
+    fireEvent.click(screen.getByTestId('geo-724'));
+    expect(screen.queryByText('¡Genial! Es España')).not.toBeInTheDocument();
+    expect(getUnlockedIds()).toEqual([]);
+  });
+
+  it('unlocks map clicks once the zoom-in animation finishes', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    fireEvent.click(screen.getByTestId('geo-724'));
+    expect(screen.getByText('¡Genial! Es España')).toBeInTheDocument();
+    expect(getUnlockedIds()).toEqual(['es']);
+  });
+
+  it('shows "Prueba con otra" on a wrong click after the zoom, keeps the question open, and does not unlock', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
     fireEvent.click(screen.getByTestId('geo-250'));
     expect(screen.getByText('Prueba con otra')).toBeInTheDocument();
     expect(getUnlockedIds()).toEqual([]);
@@ -100,14 +123,38 @@ describe('MapGame', () => {
 
   it('never reveals the correct country on a wrong click', () => {
     render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
     fireEvent.click(screen.getByTestId('geo-250'));
     // The wrong geography gets a transient highlight, but the correct one
     // (Spain, geo-724) must not receive any inline style revealing it.
     expect(screen.getByTestId('geo-724')).not.toHaveAttribute('style');
   });
 
+  it('flashes the clicked wrong geography red and clears it after 700ms', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    const wrongGeo = screen.getByTestId('geo-250');
+    expect(wrongGeo).not.toHaveAttribute('style');
+
+    fireEvent.click(wrongGeo);
+    expect(wrongGeo.style.fill).toBe('#d90429');
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(wrongGeo.style.fill).toBe('');
+  });
+
   it('unlocks and auto-advances to a fresh target after the correct click', () => {
     render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
     fireEvent.click(screen.getByTestId('geo-724'));
     expect(getUnlockedIds()).toEqual(['es']);
 
@@ -121,21 +168,5 @@ describe('MapGame', () => {
   it('never shows a "Siguiente" button', () => {
     render(<MapGame />);
     expect(screen.queryByRole('button', { name: 'Siguiente' })).not.toBeInTheDocument();
-  });
-
-  it('flashes the wrong geography red, then reverts the highlight after the flash delay', () => {
-    render(<MapGame />);
-    const wrongGeo = screen.getByTestId('geo-250');
-    expect(wrongGeo).not.toHaveAttribute('style');
-
-    fireEvent.click(wrongGeo);
-    expect(wrongGeo).toHaveAttribute('style');
-    expect(wrongGeo.style.fill).toBe('#d90429');
-
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
-
-    expect(wrongGeo.style.fill).toBe('');
   });
 });
