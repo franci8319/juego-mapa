@@ -12,4 +12,9 @@ describe('FlagIcon', () => {
     render(<FlagIcon code="fr" label="Francia" size="small" />);
     expect(screen.getByRole('img', { name: 'Francia' })).toHaveClass('flag-icon--small');
   });
+
+  it('applies the medium size class when requested', () => {
+    render(<FlagIcon code="it" label="Italia" size="medium" />);
+    expect(screen.getByRole('img', { name: 'Italia' })).toHaveClass('flag-icon--medium');
+  });
 });
