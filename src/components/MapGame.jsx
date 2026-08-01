@@ -4,11 +4,17 @@ import { paises } from '../data/paises.js';
 import { pickRandomCountry } from '../lib/quiz.js';
 import { matchesGeography } from '../lib/isoMap.js';
 import { unlockCountry } from '../lib/progress.js';
-import { worldAtlasTopology } from '../lib/worldAtlas.js';
+import { hasMapGeometry, worldAtlasTopology } from '../lib/worldAtlas.js';
 import FlagIcon from './FlagIcon.jsx';
 
+// The bundled 110m-resolution atlas drops some small island states (e.g.
+// Cabo Verde, Curazao), so only countries that actually have a clickable
+// polygon on the map may be asked about here — otherwise the question
+// would be unwinnable. Other game modes still use the full `paises` list.
+const mappableCountries = paises.filter((pais) => hasMapGeometry(pais.flagCode));
+
 export default function MapGame() {
-  const [target, setTarget] = useState(() => pickRandomCountry(paises));
+  const [target, setTarget] = useState(() => pickRandomCountry(mappableCountries));
   const [feedback, setFeedback] = useState(null);
 
   const handleGeographyClick = useCallback(
@@ -26,7 +32,7 @@ export default function MapGame() {
 
   const handleNext = useCallback(() => {
     setFeedback(null);
-    setTarget(pickRandomCountry(paises));
+    setTarget(pickRandomCountry(mappableCountries));
   }, []);
 
   return (
