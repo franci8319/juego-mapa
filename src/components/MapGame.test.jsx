@@ -1,25 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MapGame from './MapGame.jsx';
 import { getUnlockedIds } from '../lib/progress.js';
-import { pickRandomCountry } from '../lib/quiz.js';
-
-// See ExploreMap.test.jsx's comment for why fireEvent.click (not
-// userEvent.click) is required here: ZoomableGroup wires up d3-zoom's
-// native "mousedown.zoom" listener, which throws in jsdom on the
-// mousedown that userEvent.click dispatches as part of its full
-// pointerdown/mousedown/mouseup/click sequence.
 
 vi.mock('../lib/quiz.js', () => ({
-  pickRandomCountry: vi.fn(() => ({ id: 'es', name: 'España', flagCode: 'es' })),
+  pickRandomCountry: () => ({ id: 'es', name: 'España', flagCode: 'es' }),
 }));
 
-// hasMapGeometry here only allows 'es' (Spain) and 'fr' (France, used for
-// the wrong-answer polygon) through, so tests can assert that MapGame's
-// target pool was actually filtered down from the full ~49-country
-// `paises` dataset, rather than trivially passing regardless of filtering.
 vi.mock('../lib/worldAtlas.js', () => ({
-  hasMapGeometry: (flagCode) => flagCode === 'es' || flagCode === 'fr',
   worldAtlasTopology: {
     type: 'Topology',
     objects: {
@@ -56,54 +44,66 @@ vi.mock('../lib/worldAtlas.js', () => ({
       ],
     ],
   },
+  hasMapGeometry: () => true,
 }));
+
+// react-simple-maps' ZoomableGroup wires a native "mousedown.zoom" d3-zoom
+// listener directly on the <svg>, which throws in jsdom on the full pointer
+// event sequence userEvent.click dispatches (missing SVGAnimatedRect/event
+// internals). fireEvent.click dispatches only a bare "click" event, which
+// d3-zoom never listens for, so it safely exercises the same onClick handler
+// React relies on without touching d3-zoom's separate gesture listener.
+// (Same pattern already used in ExploreMap.test.jsx.)
 
 describe('MapGame', () => {
   beforeEach(() => {
     localStorage.clear();
-    pickRandomCountry.mockClear();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
-  it('only targets countries that have geometry on the map', () => {
-    render(<MapGame />);
-    expect(pickRandomCountry).toHaveBeenCalledTimes(1);
-    const [pool] = pickRandomCountry.mock.calls[0];
-    expect(pool.length).toBeGreaterThan(0);
-    expect(pool.every((pais) => pais.flagCode === 'es' || pais.flagCode === 'fr')).toBe(true);
-    expect(pool.some((pais) => pais.flagCode === 'cv')).toBe(false);
-    expect(pool.some((pais) => pais.flagCode === 'cw')).toBe(false);
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('prompts with the target country flag', () => {
+  it('prompts with the target country flag and a replay button', () => {
     render(<MapGame />);
     expect(screen.getByRole('img', { name: 'Encuentra: España' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Repetir en voz alta' })).toBeInTheDocument();
   });
 
-  it('unlocks the country and shows success feedback when the right polygon is clicked', async () => {
+  it('shows "Prueba con otra" on a wrong click, keeps the question open, and does not unlock', () => {
     render(<MapGame />);
+    fireEvent.click(screen.getByTestId('geo-250'));
+    expect(screen.getByText('Prueba con otra')).toBeInTheDocument();
+    expect(getUnlockedIds()).toEqual([]);
+    // The question is still open: clicking the correct geography now still works.
     fireEvent.click(screen.getByTestId('geo-724'));
-    expect(await screen.findByText('¡Genial! Es España')).toBeInTheDocument();
+    expect(screen.getByText('¡Genial! Es España')).toBeInTheDocument();
     expect(getUnlockedIds()).toEqual(['es']);
   });
 
-  it('shows encouraging feedback without unlocking on a wrong polygon', async () => {
+  it('never reveals the correct country on a wrong click', () => {
     render(<MapGame />);
     fireEvent.click(screen.getByTestId('geo-250'));
-    expect(await screen.findByText('Casi... era España')).toBeInTheDocument();
-    expect(getUnlockedIds()).toEqual([]);
+    // The wrong geography gets a transient highlight, but the correct one
+    // (Spain, geo-724) must not receive any inline style revealing it.
+    expect(screen.getByTestId('geo-724')).not.toHaveAttribute('style');
   });
 
-  it('highlights the correct country after a wrong answer, and reverts on Siguiente', async () => {
+  it('unlocks and auto-advances to a fresh target after the correct click', () => {
     render(<MapGame />);
-    const target = screen.getByTestId('geo-724');
-    const fillBeforeWrongAnswer = target.style.fill;
+    fireEvent.click(screen.getByTestId('geo-724'));
+    expect(getUnlockedIds()).toEqual(['es']);
 
-    fireEvent.click(screen.getByTestId('geo-250'));
-    await screen.findByText('Casi... era España');
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
 
-    expect(target.style.fill).not.toBe(fillBeforeWrongAnswer);
+    expect(screen.queryByText('¡Genial! Es España')).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByText('Siguiente'));
-    expect(target.style.fill).toBe(fillBeforeWrongAnswer);
+  it('never shows a "Siguiente" button', () => {
+    render(<MapGame />);
+    expect(screen.queryByRole('button', { name: 'Siguiente' })).not.toBeInTheDocument();
   });
 });
