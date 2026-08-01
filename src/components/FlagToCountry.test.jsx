@@ -40,6 +40,22 @@ describe('FlagToCountry', () => {
     expect(getUnlockedIds()).toEqual([]);
   });
 
+  it('ignores a second, different answer after feedback is already shown', async () => {
+    render(<FlagToCountry />);
+    await userEvent.click(screen.getByRole('button', { name: 'Francia' }));
+    expect(screen.getByText('Casi... era España')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: 'España' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Francia' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Italia' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Alemania' })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Italia' }));
+
+    expect(screen.getByText('Casi... era España')).toBeInTheDocument();
+    expect(getUnlockedIds()).toEqual([]);
+  });
+
   it('loads a new question when "Siguiente" is clicked', async () => {
     render(<FlagToCountry />);
     await userEvent.click(screen.getByRole('button', { name: 'España' }));
