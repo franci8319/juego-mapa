@@ -2,11 +2,16 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MapGame from './MapGame.jsx';
 import { getUnlockedIds } from '../lib/progress.js';
+import { pickRandomCountry } from '../lib/quiz.js';
 
 vi.mock('../lib/quiz.js', () => ({
-  pickRandomCountry: () => ({ id: 'es', name: 'España', flagCode: 'es' }),
+  pickRandomCountry: vi.fn(() => ({ id: 'es', name: 'España', flagCode: 'es' })),
 }));
 
+// hasMapGeometry here only allows 'es' (Spain) and 'fr' (France, used for
+// the wrong-answer polygon) through, so tests can assert that MapGame's
+// target pool was actually filtered down from the full ~49-country
+// `paises` dataset, rather than trivially passing regardless of filtering.
 vi.mock('../lib/worldAtlas.js', () => ({
   worldAtlasTopology: {
     type: 'Topology',
@@ -44,7 +49,7 @@ vi.mock('../lib/worldAtlas.js', () => ({
       ],
     ],
   },
-  hasMapGeometry: () => true,
+  hasMapGeometry: (flagCode) => flagCode === 'es' || flagCode === 'fr',
 }));
 
 // react-simple-maps' ZoomableGroup wires a native "mousedown.zoom" d3-zoom
@@ -59,10 +64,21 @@ describe('MapGame', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    pickRandomCountry.mockClear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('only targets countries that have geometry on the map', () => {
+    render(<MapGame />);
+    expect(pickRandomCountry).toHaveBeenCalledTimes(1);
+    const [pool] = pickRandomCountry.mock.calls[0];
+    expect(pool.length).toBeGreaterThan(0);
+    expect(pool.every((pais) => pais.flagCode === 'es' || pais.flagCode === 'fr')).toBe(true);
+    expect(pool.some((pais) => pais.flagCode === 'cv')).toBe(false);
+    expect(pool.some((pais) => pais.flagCode === 'cw')).toBe(false);
   });
 
   it('prompts with the target country flag and a replay button', () => {
@@ -105,5 +121,21 @@ describe('MapGame', () => {
   it('never shows a "Siguiente" button', () => {
     render(<MapGame />);
     expect(screen.queryByRole('button', { name: 'Siguiente' })).not.toBeInTheDocument();
+  });
+
+  it('flashes the wrong geography red, then reverts the highlight after the flash delay', () => {
+    render(<MapGame />);
+    const wrongGeo = screen.getByTestId('geo-250');
+    expect(wrongGeo).not.toHaveAttribute('style');
+
+    fireEvent.click(wrongGeo);
+    expect(wrongGeo).toHaveAttribute('style');
+    expect(wrongGeo.style.fill).toBe('#d90429');
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(wrongGeo.style.fill).toBe('');
   });
 });
