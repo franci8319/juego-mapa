@@ -40,4 +40,18 @@ describe('paises dataset', () => {
     }
     expect(counts).toEqual({ america: 12, europa: 17, africa: 10, asia: 8, oceania: 2 });
   });
+
+  it('gives every country a difficulty tier of 1, 2, or 3', () => {
+    for (const pais of paises) {
+      expect([1, 2, 3]).toContain(pais.difficulty);
+    }
+  });
+
+  it('groups countries into the expected difficulty tier counts', () => {
+    const counts = { 1: 0, 2: 0, 3: 0 };
+    for (const pais of paises) {
+      counts[pais.difficulty] += 1;
+    }
+    expect(counts).toEqual({ 1: 12, 2: 21, 3: 16 });
+  });
 });
