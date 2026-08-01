@@ -1,3 +1,110 @@
 :root {
   color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f8ff;
+  color: #1a1a2e;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+}
+
+button {
+  font-size: 1.1rem;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0.75rem 1.25rem;
+  margin: 0.4rem;
+  border: none;
+  border-radius: 12px;
+  background: #4361ee;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.main-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.flag-icon {
+  display: inline-block;
+  border-radius: 8px;
+}
+
+.flag-icon--large {
+  width: 220px;
+  height: 147px;
+}
+
+.flag-icon--small {
+  width: 64px;
+  height: 43px;
+}
+
+.feedback--correct {
+  color: #2b9348;
+}
+
+.feedback--incorrect {
+  color: #d90429;
+}
+
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.75rem;
+}
+
+.album-card {
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.5rem;
+}
+
+.album-card.locked {
+  background: #e2e8f0;
+}
+
+.album-card__mystery {
+  font-size: 2rem;
+}
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.5rem;
+}
+
+.memory-card {
+  aspect-ratio: 1;
+  font-size: 1.5rem;
 }
