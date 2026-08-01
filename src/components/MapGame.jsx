@@ -30,8 +30,18 @@ function announceTarget(target) {
   return ['Encuentra este país en el mapa', target.name];
 }
 
+// Excludes countries already found this session so questions don't repeat
+// while there are still unfound ones — once everything has been found,
+// falls back to the full pool so the game keeps going instead of crashing
+// on an empty pick.
+function pickNextTarget(revealedIds, correctCount) {
+  const remaining = mappableCountries.filter((pais) => !revealedIds.includes(pais.id));
+  const pool = remaining.length > 0 ? remaining : mappableCountries;
+  return pickWeightedCountry(pool, correctCount);
+}
+
 export default function MapGame() {
-  const [target, setTarget] = useState(() => pickWeightedCountry(mappableCountries, 0));
+  const [target, setTarget] = useState(() => pickNextTarget([], 0));
   const [correctCount, setCorrectCount] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [wrongGeoId, setWrongGeoId] = useState(null);
@@ -77,16 +87,17 @@ export default function MapGame() {
     if (!feedback) return undefined;
     speak(feedback.message);
     if (!feedback.correct) return undefined;
-    // correctCount is read from this render's closure rather than added to
-    // the dependency array below: it only ever changes together with
-    // feedback (both set in this same timeout), so the closure can't go
-    // stale independently of feedback changing too.
+    // correctCount and revealedFlags are read from this render's closure
+    // rather than added to the dependency array below: both only ever
+    // change together with feedback (all set in the same click handler /
+    // this same timeout), so the closure can't go stale independently of
+    // feedback changing too.
     const nextCorrectCount = correctCount + 1;
     const timer = setTimeout(() => {
       setFeedback(null);
       setWrongGeoId(null);
       setCorrectCount(nextCorrectCount);
-      setTarget(pickWeightedCountry(mappableCountries, nextCorrectCount));
+      setTarget(pickNextTarget(revealedFlags, nextCorrectCount));
     }, ADVANCE_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

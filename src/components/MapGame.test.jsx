@@ -196,6 +196,20 @@ describe('MapGame', () => {
     expect(getCentroid).toHaveBeenCalledWith('es');
   });
 
+  it('excludes already-revealed countries from the next question pool', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    fireEvent.click(screen.getByTestId('geo-724'));
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    const [secondPool] = pickWeightedCountry.mock.calls[1];
+    expect(secondPool.some((pais) => pais.flagCode === 'es')).toBe(false);
+    expect(secondPool.some((pais) => pais.flagCode === 'fr')).toBe(true);
+  });
+
   it('places a flag marker on the map after a correct answer, and not before', () => {
     render(<MapGame />);
     expect(screen.queryByText('🇪🇸')).not.toBeInTheDocument();
