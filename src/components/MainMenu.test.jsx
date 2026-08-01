@@ -19,4 +19,18 @@ describe('MainMenu', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mi álbum' }));
     expect(onNavigate).toHaveBeenCalledWith('album');
   });
+
+  it('shows a distinct icon for every screen', () => {
+    render(<MainMenu onNavigate={() => {}} />);
+    expect(screen.getByText('🏳️')).toBeInTheDocument();
+    expect(screen.getByText('🚩')).toBeInTheDocument();
+    expect(screen.getByText('🗺️')).toBeInTheDocument();
+    expect(screen.getByText('🧭')).toBeInTheDocument();
+    expect(screen.getByText('📖')).toBeInTheDocument();
+  });
+
+  it('still exposes each label as the button\'s accessible name (icon is decorative)', () => {
+    render(<MainMenu onNavigate={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Bandera → País' })).toBeInTheDocument();
+  });
 });
