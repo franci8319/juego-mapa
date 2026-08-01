@@ -1,7 +1,7 @@
 export const continents = Object.freeze([
-  { id: 'america', label: 'América', center: [-80, 10], zoom: 1.7 },
-  { id: 'europa', label: 'Europa', center: [15, 50], zoom: 3.5 },
-  { id: 'africa', label: 'África', center: [20, 3], zoom: 2.2 },
-  { id: 'asia', label: 'Asia', center: [75, 30], zoom: 1.6 },
-  { id: 'oceania', label: 'Oceanía', center: [150, -30], zoom: 2.3 },
+  { id: 'america', label: 'América', icon: '🌎', color: '#4361ee' },
+  { id: 'europa', label: 'Europa', icon: '🏰', color: '#7209b7' },
+  { id: 'africa', label: 'África', icon: '🦁', color: '#f77f00' },
+  { id: 'asia', label: 'Asia', icon: '🐉', color: '#e63946' },
+  { id: 'oceania', label: 'Oceanía', icon: '🐨', color: '#2b9348' },
 ]);

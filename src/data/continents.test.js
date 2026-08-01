@@ -9,13 +9,11 @@ describe('continents', () => {
     expect(ids.sort()).toEqual(['africa', 'america', 'asia', 'europa', 'oceania']);
   });
 
-  it('gives every continent a label and a valid center/zoom', () => {
+  it('gives every continent a label, an icon, and a color', () => {
     for (const continent of continents) {
       expect(continent.label.length).toBeGreaterThan(0);
-      expect(continent.center).toHaveLength(2);
-      expect(typeof continent.center[0]).toBe('number');
-      expect(typeof continent.center[1]).toBe('number');
-      expect(continent.zoom).toBeGreaterThan(0);
+      expect(continent.icon.length).toBeGreaterThan(0);
+      expect(continent.color).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });
 });
