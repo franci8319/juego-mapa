@@ -143,3 +143,56 @@ button:disabled {
   border: 2px solid #cbd5e1;
   min-height: 60px;
 }
+
+.flag-icon--medium {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+}
+
+.country-to-flag .options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.country-to-flag .options button {
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem;
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.feedback__icon {
+  font-size: 2rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.option--correct {
+  background: #2b9348;
+}
+
+.option--wrong {
+  background: #d90429;
+}
+
+.replay-button {
+  font-size: 1.5rem;
+  background: #6c757d;
+}
+
+.continent-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
