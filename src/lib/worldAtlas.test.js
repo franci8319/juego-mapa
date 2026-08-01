@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasMapGeometry, worldAtlasTopology } from './worldAtlas.js';
+import { getCentroid, hasMapGeometry, worldAtlasTopology } from './worldAtlas.js';
 
 describe('worldAtlasTopology', () => {
   it('is a topojson topology with a countries object', () => {
@@ -25,5 +25,22 @@ describe('hasMapGeometry', () => {
 
   it('returns false for Curazao, which the 110m atlas drops', () => {
     expect(hasMapGeometry('cw')).toBe(false);
+  });
+});
+
+describe('getCentroid', () => {
+  it('returns a real [longitude, latitude] centroid for a country with map geometry', () => {
+    const centroid = getCentroid('es');
+    expect(centroid).not.toBeNull();
+    const [lon, lat] = centroid;
+    expect(lon).toBeGreaterThan(-10);
+    expect(lon).toBeLessThan(5);
+    expect(lat).toBeGreaterThan(35);
+    expect(lat).toBeLessThan(45);
+  });
+
+  it('returns null for a country with no map geometry', () => {
+    expect(getCentroid('cv')).toBeNull();
+    expect(getCentroid('cw')).toBeNull();
   });
 });

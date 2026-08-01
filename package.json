@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "d3-geo": "^2.0.2",
     "flag-icons": "^7",
     "i18n-iso-countries": "^7",
     "react": "^18",
