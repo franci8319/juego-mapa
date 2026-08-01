@@ -1,54 +1,41 @@
-import { useCallback, useState } from 'react';
 import { paises } from '../data/paises.js';
-import { buildOptions, pickRandomCountry } from '../lib/quiz.js';
-import { unlockCountry } from '../lib/progress.js';
+import { useMultipleChoiceQuestion } from '../lib/useMultipleChoiceQuestion.js';
+import AnswerFeedback from './AnswerFeedback.jsx';
 import FlagIcon from './FlagIcon.jsx';
 
-function nextQuestion() {
-  const correct = pickRandomCountry(paises);
-  return { correct, options: buildOptions(paises, correct) };
-}
+const announce = (question) => [
+  '¿Qué país es esta bandera?',
+  ...question.options.map((option) => option.name),
+];
 
 export default function FlagToCountry() {
-  const [question, setQuestion] = useState(nextQuestion);
-  const [feedback, setFeedback] = useState(null);
-
-  const handleAnswer = useCallback(
-    (option) => {
-      if (feedback) return;
-      if (option.id === question.correct.id) {
-        unlockCountry(option.id);
-        setFeedback({ correct: true, message: `¡Genial! Es ${question.correct.name}` });
-      } else {
-        setFeedback({ correct: false, message: `Casi... era ${question.correct.name}` });
-      }
-    },
-    [question, feedback]
-  );
-
-  const handleNext = useCallback(() => {
-    setFeedback(null);
-    setQuestion(nextQuestion());
-  }, []);
+  const { question, wrongIds, feedback, answer, replay } = useMultipleChoiceQuestion(paises, announce);
 
   return (
     <section className="game flag-to-country">
       <FlagIcon code={question.correct.flagCode} label="Bandera a adivinar" size="large" />
+      <button type="button" className="replay-button" onClick={replay} aria-label="Repetir en voz alta">
+        🔊
+      </button>
       <div className="options">
-        {question.options.map((option) => (
-          <button key={option.id} type="button" onClick={() => handleAnswer(option)} disabled={Boolean(feedback)}>
-            {option.name}
-          </button>
-        ))}
+        {question.options.map((option) => {
+          const isWrong = wrongIds.includes(option.id);
+          const isCorrectPick = Boolean(feedback?.correct) && option.id === question.correct.id;
+          const className = isWrong ? 'option--wrong' : isCorrectPick ? 'option--correct' : undefined;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => answer(option)}
+              disabled={isWrong || Boolean(feedback?.correct)}
+              className={className}
+            >
+              {option.name}
+            </button>
+          );
+        })}
       </div>
-      {feedback && (
-        <div className={feedback.correct ? 'feedback feedback--correct' : 'feedback feedback--incorrect'}>
-          <p>{feedback.message}</p>
-          <button type="button" onClick={handleNext}>
-            Siguiente
-          </button>
-        </div>
-      )}
+      {feedback && <AnswerFeedback correct={feedback.correct} message={feedback.message} />}
     </section>
   );
 }
