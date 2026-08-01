@@ -32,6 +32,11 @@ describe('FlagToCountry', () => {
     expect(screen.getByRole('button', { name: 'Francia' })).toBeInTheDocument();
   });
 
+  it('options are answerable once narration has finished (jsdom has no speechSynthesis, so narration ends immediately)', () => {
+    render(<FlagToCountry />);
+    expect(screen.getByRole('button', { name: 'España' })).toBeEnabled();
+  });
+
   it('marks a wrong option red and disabled, keeps the question open, and shows "Prueba con otra"', async () => {
     const user = userEvent.setup({ delay: null });
     render(<FlagToCountry />);
@@ -59,8 +64,54 @@ describe('FlagToCountry', () => {
     expect(screen.queryByText('¡Genial! Es España')).not.toBeInTheDocument();
   });
 
+  it('ignores a second, different answer after feedback is already shown', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<FlagToCountry />);
+    await user.click(screen.getByRole('button', { name: 'Francia' }));
+    expect(screen.getByText('Prueba con otra')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Italia' }));
+
+    expect(screen.getByText('Prueba con otra')).toBeInTheDocument();
+    expect(getUnlockedIds()).toEqual([]);
+  });
+
   it('never shows a "Siguiente" button', () => {
     render(<FlagToCountry />);
     expect(screen.queryByRole('button', { name: 'Siguiente' })).not.toBeInTheDocument();
+  });
+
+  it('highlights and disables all options while narrating, using a real speechSynthesis mock', () => {
+    window.speechSynthesis = { cancel: vi.fn(), speak: vi.fn() };
+    global.SpeechSynthesisUtterance = vi.fn(function (text) {
+      this.text = text;
+    });
+
+    render(<FlagToCountry />);
+
+    // All 4 options should be disabled while speechSynthesis exists but no
+    // utterance has reported starting/ending yet (narratingIndex stays 0
+    // from the initial state, since our mock never auto-fires onstart/onend).
+    expect(screen.getByRole('button', { name: 'España' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Francia' })).toBeDisabled();
+
+    // Simulate the browser narrating option index 2 (0=prompt, 1..4=options
+    // 0..3, so index 2 highlights options[1] — whichever option that is
+    // given the mocked buildOptions() order above, i.e. 'Francia').
+    const utterances = SpeechSynthesisUtterance.mock.instances;
+    act(() => {
+      utterances[2].onstart();
+    });
+    expect(screen.getByRole('button', { name: 'Francia' })).toHaveClass('option--narrating');
+
+    // Once the last utterance ends, everything unlocks.
+    act(() => {
+      utterances[utterances.length - 1].onend();
+    });
+    expect(screen.getByRole('button', { name: 'España' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Francia' })).not.toHaveClass('option--narrating');
+
+    delete window.speechSynthesis;
+    delete global.SpeechSynthesisUtterance;
   });
 });

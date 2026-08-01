@@ -9,7 +9,12 @@ const announce = (question) => [
 ];
 
 export default function FlagToCountry() {
-  const { question, wrongIds, feedback, answer, replay } = useMultipleChoiceQuestion(paises, announce);
+  const { question, wrongIds, feedback, answer, replay, narratingIndex } = useMultipleChoiceQuestion(
+    paises,
+    announce
+  );
+  const isNarrating = narratingIndex !== null;
+  const highlightedOptionIndex = isNarrating ? narratingIndex - 1 : -1;
 
   return (
     <section className="game flag-to-country">
@@ -18,16 +23,23 @@ export default function FlagToCountry() {
         🔊
       </button>
       <div className="options">
-        {question.options.map((option) => {
+        {question.options.map((option, index) => {
           const isWrong = wrongIds.includes(option.id);
           const isCorrectPick = Boolean(feedback?.correct) && option.id === question.correct.id;
-          const className = isWrong ? 'option--wrong' : isCorrectPick ? 'option--correct' : undefined;
+          const isBeingNarrated = index === highlightedOptionIndex;
+          const className = isWrong
+            ? 'option--wrong'
+            : isCorrectPick
+              ? 'option--correct'
+              : isBeingNarrated
+                ? 'option--narrating'
+                : undefined;
           return (
             <button
               key={option.id}
               type="button"
               onClick={() => answer(option)}
-              disabled={isWrong || Boolean(feedback?.correct)}
+              disabled={isWrong || Boolean(feedback?.correct) || isNarrating}
               className={className}
             >
               {option.name}

@@ -211,3 +211,8 @@ button:disabled {
 .map-game-zoom {
   transition: transform 4s ease-in-out;
 }
+
+.option--narrating {
+  background: #ffd60a;
+  color: #1a1a2e;
+}
