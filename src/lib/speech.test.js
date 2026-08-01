@@ -34,4 +34,34 @@ describe('speak', () => {
     expect(SpeechSynthesisUtterance).toHaveBeenNthCalledWith(1, 'Hola');
     expect(SpeechSynthesisUtterance).toHaveBeenNthCalledWith(2, 'Mundo');
   });
+
+  it('fires onEnd immediately when speechSynthesis is unavailable, without throwing', () => {
+    delete window.speechSynthesis;
+    const onEnd = vi.fn();
+    expect(() => speak('Hola', { onEnd })).not.toThrow();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('wires onEachStart to fire with the right index when each utterance starts', () => {
+    const onEachStart = vi.fn();
+    speak(['Hola', 'Mundo'], { onEachStart });
+    const [utteranceA, utteranceB] = SpeechSynthesisUtterance.mock.results.map((r) => r.value);
+    utteranceA.onstart();
+    expect(onEachStart).toHaveBeenCalledWith(0);
+    utteranceB.onstart();
+    expect(onEachStart).toHaveBeenCalledWith(1);
+  });
+
+  it('wires onEnd to the last utterance only, not the earlier ones', () => {
+    const onEnd = vi.fn();
+    speak(['Hola', 'Mundo'], { onEnd });
+    const [utteranceA, utteranceB] = SpeechSynthesisUtterance.mock.results.map((r) => r.value);
+    expect(utteranceA.onend).toBeUndefined();
+    utteranceB.onend();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not require onEachStart/onEnd to be provided', () => {
+    expect(() => speak(['Hola', 'Mundo'])).not.toThrow();
+  });
 });
