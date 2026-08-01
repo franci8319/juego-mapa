@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
 import { paises } from '../data/paises.js';
-import { pickRandomCountry } from '../lib/quiz.js';
+import { pickWeightedCountry } from '../lib/quiz.js';
 import { matchesGeography } from '../lib/isoMap.js';
 import { unlockCountry } from '../lib/progress.js';
 import { getCentroid, hasMapGeometry, worldAtlasTopology } from '../lib/worldAtlas.js';
+import { getFlagEmoji } from '../lib/flagEmoji.js';
 import { speak } from '../lib/speech.js';
 import AnswerFeedback from './AnswerFeedback.jsx';
 import FlagIcon from './FlagIcon.jsx';
@@ -30,11 +31,16 @@ function announceTarget(target) {
 }
 
 export default function MapGame() {
-  const [target, setTarget] = useState(() => pickRandomCountry(mappableCountries));
+  const [target, setTarget] = useState(() => pickWeightedCountry(mappableCountries, 0));
+  const [correctCount, setCorrectCount] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [wrongGeoId, setWrongGeoId] = useState(null);
   const [mapView, setMapView] = useState(WORLD_VIEW);
   const [isZooming, setIsZooming] = useState(true);
+  // Session-only: which countries the child has already found this visit,
+  // so their flag can stay pinned on the map. Not persisted — resets every
+  // time this screen is left and re-entered.
+  const [revealedFlags, setRevealedFlags] = useState([]);
 
   // Must run BEFORE the feedback effect below: on auto-advance, `target`
   // and `feedback` are both updated in the same batched tick, and this
@@ -71,12 +77,19 @@ export default function MapGame() {
     if (!feedback) return undefined;
     speak(feedback.message);
     if (!feedback.correct) return undefined;
+    // correctCount is read from this render's closure rather than added to
+    // the dependency array below: it only ever changes together with
+    // feedback (both set in this same timeout), so the closure can't go
+    // stale independently of feedback changing too.
+    const nextCorrectCount = correctCount + 1;
     const timer = setTimeout(() => {
       setFeedback(null);
       setWrongGeoId(null);
-      setTarget(pickRandomCountry(mappableCountries));
+      setCorrectCount(nextCorrectCount);
+      setTarget(pickWeightedCountry(mappableCountries, nextCorrectCount));
     }, ADVANCE_DELAY_MS);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedback]);
 
   useEffect(() => {
@@ -92,6 +105,7 @@ export default function MapGame() {
         unlockCountry(target.id);
         setFeedback({ correct: true, message: `¡Genial! Es ${target.name}` });
         setWrongGeoId(null);
+        setRevealedFlags((prev) => (prev.includes(target.id) ? prev : [...prev, target.id]));
       } else {
         setFeedback({ correct: false, message: 'Prueba con otra' });
         setWrongGeoId(geo.id);
@@ -139,6 +153,18 @@ export default function MapGame() {
               ))
             }
           </Geographies>
+          {revealedFlags.map((id) => {
+            const pais = mappableCountries.find((p) => p.id === id);
+            const centroid = pais && getCentroid(pais.flagCode);
+            if (!centroid) return null;
+            return (
+              <Marker key={id} coordinates={centroid}>
+                <text textAnchor="middle" dy={3} style={{ fontSize: 10, pointerEvents: 'none' }}>
+                  {getFlagEmoji(pais.flagCode)}
+                </text>
+              </Marker>
+            );
+          })}
         </ZoomableGroup>
       </ComposableMap>
       {feedback && <AnswerFeedback correct={feedback.correct} message={feedback.message} />}

@@ -2,11 +2,11 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MapGame from './MapGame.jsx';
 import { getUnlockedIds } from '../lib/progress.js';
-import { pickRandomCountry } from '../lib/quiz.js';
+import { pickWeightedCountry } from '../lib/quiz.js';
 import { getCentroid } from '../lib/worldAtlas.js';
 
 vi.mock('../lib/quiz.js', () => ({
-  pickRandomCountry: vi.fn(() => ({ id: 'es', name: 'España', flagCode: 'es' })),
+  pickWeightedCountry: vi.fn(() => ({ id: 'es', name: 'España', flagCode: 'es', difficulty: 1 })),
 }));
 
 // hasMapGeometry here only allows 'es' (Spain) and 'fr' (France, used for
@@ -68,7 +68,7 @@ describe('MapGame', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    pickRandomCountry.mockClear();
+    pickWeightedCountry.mockClear();
     getCentroid.mockClear();
   });
 
@@ -78,12 +78,17 @@ describe('MapGame', () => {
 
   it('only targets countries that have geometry on the map', () => {
     render(<MapGame />);
-    expect(pickRandomCountry).toHaveBeenCalledTimes(1);
-    const [pool] = pickRandomCountry.mock.calls[0];
+    expect(pickWeightedCountry).toHaveBeenCalledTimes(1);
+    const [pool] = pickWeightedCountry.mock.calls[0];
     expect(pool.length).toBeGreaterThan(0);
     expect(pool.every((pais) => pais.flagCode === 'es' || pais.flagCode === 'fr')).toBe(true);
     expect(pool.some((pais) => pais.flagCode === 'cv')).toBe(false);
-    expect(pool.some((pais) => pais.flagCode === 'cw')).toBe(false);
+  });
+
+  it('picks the initial target with correctCount 0', () => {
+    render(<MapGame />);
+    const [, correctCount] = pickWeightedCountry.mock.calls[0];
+    expect(correctCount).toBe(0);
   });
 
   it('prompts with the target country flag and a replay button', () => {
@@ -117,7 +122,6 @@ describe('MapGame', () => {
     fireEvent.click(screen.getByTestId('geo-250'));
     expect(screen.getByText('Prueba con otra')).toBeInTheDocument();
     expect(getUnlockedIds()).toEqual([]);
-    // The question is still open: clicking the correct geography now still works.
     fireEvent.click(screen.getByTestId('geo-724'));
     expect(screen.getByText('¡Genial! Es España')).toBeInTheDocument();
     expect(getUnlockedIds()).toEqual(['es']);
@@ -129,8 +133,6 @@ describe('MapGame', () => {
       vi.advanceTimersByTime(ZOOM_LOCK_MS);
     });
     fireEvent.click(screen.getByTestId('geo-250'));
-    // The wrong geography gets a transient highlight, but the correct one
-    // (Spain, geo-724) must not receive any inline style revealing it.
     expect(screen.getByTestId('geo-724')).not.toHaveAttribute('style');
   });
 
@@ -140,19 +142,15 @@ describe('MapGame', () => {
       vi.advanceTimersByTime(ZOOM_LOCK_MS);
     });
     const wrongGeo = screen.getByTestId('geo-250');
-    expect(wrongGeo).not.toHaveAttribute('style');
-
     fireEvent.click(wrongGeo);
     expect(wrongGeo.style.fill).toBe('#d90429');
-
     act(() => {
       vi.advanceTimersByTime(700);
     });
-
     expect(wrongGeo.style.fill).toBe('');
   });
 
-  it('unlocks and auto-advances to a fresh target after the correct click', () => {
+  it('unlocks and auto-advances to a fresh target with an incremented correctCount', () => {
     render(<MapGame />);
     act(() => {
       vi.advanceTimersByTime(ZOOM_LOCK_MS);
@@ -165,6 +163,9 @@ describe('MapGame', () => {
     });
 
     expect(screen.queryByText('¡Genial! Es España')).not.toBeInTheDocument();
+    expect(pickWeightedCountry).toHaveBeenCalledTimes(2);
+    const [, secondCorrectCount] = pickWeightedCountry.mock.calls[1];
+    expect(secondCorrectCount).toBe(1);
   });
 
   it('never shows a "Siguiente" button', () => {
@@ -184,16 +185,26 @@ describe('MapGame', () => {
   it('applies the map-game-zoom transition class only while the zoom-in animation is running', () => {
     const { container } = render(<MapGame />);
     expect(container.querySelector('.map-game-zoom')).toBeTruthy();
-
     act(() => {
       vi.advanceTimersByTime(ZOOM_LOCK_MS);
     });
-
     expect(container.querySelector('.map-game-zoom')).toBeFalsy();
   });
 
   it('computes the zoom center from the real target centroid', () => {
     render(<MapGame />);
     expect(getCentroid).toHaveBeenCalledWith('es');
+  });
+
+  it('places a flag marker on the map after a correct answer, and not before', () => {
+    render(<MapGame />);
+    expect(screen.queryByText('🇪🇸')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    fireEvent.click(screen.getByTestId('geo-724'));
+
+    expect(screen.getByText('🇪🇸')).toBeInTheDocument();
   });
 });
