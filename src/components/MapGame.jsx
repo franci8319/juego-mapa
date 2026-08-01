@@ -42,14 +42,23 @@ export default function MapGame() {
         <ZoomableGroup zoom={1} minZoom={1} maxZoom={8}>
           <Geographies geography={worldAtlasTopology}>
             {({ geographies }) =>
-              geographies.map((geo) => (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  data-testid={`geo-${geo.id}`}
-                  onClick={() => handleGeographyClick(geo)}
-                />
-              ))
+              geographies.map((geo) => {
+                const isMissedTarget =
+                  feedback && !feedback.correct && matchesGeography(target.flagCode, geo.id);
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    data-testid={`geo-${geo.id}`}
+                    onClick={() => handleGeographyClick(geo)}
+                    style={
+                      isMissedTarget
+                        ? { default: { fill: '#fbbf24', stroke: '#ffffff', strokeWidth: 1 } }
+                        : undefined
+                    }
+                  />
+                );
+              })
             }
           </Geographies>
         </ZoomableGroup>

@@ -92,4 +92,18 @@ describe('MapGame', () => {
     expect(await screen.findByText('Casi... era España')).toBeInTheDocument();
     expect(getUnlockedIds()).toEqual([]);
   });
+
+  it('highlights the correct country after a wrong answer, and reverts on Siguiente', async () => {
+    render(<MapGame />);
+    const target = screen.getByTestId('geo-724');
+    const fillBeforeWrongAnswer = target.style.fill;
+
+    fireEvent.click(screen.getByTestId('geo-250'));
+    await screen.findByText('Casi... era España');
+
+    expect(target.style.fill).not.toBe(fillBeforeWrongAnswer);
+
+    fireEvent.click(screen.getByText('Siguiente'));
+    expect(target.style.fill).toBe(fillBeforeWrongAnswer);
+  });
 });
