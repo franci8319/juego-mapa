@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Album from './components/Album.jsx';
+import FlagToCountry from './components/FlagToCountry.jsx';
 import MainMenu from './components/MainMenu.jsx';
 
 export default function App() {
@@ -14,7 +15,7 @@ export default function App() {
         </button>
       )}
       {screen === 'menu' && <MainMenu onNavigate={setScreen} />}
-      {screen === 'flag-to-country' && <p>Bandera → País (próximamente)</p>}
+      {screen === 'flag-to-country' && <FlagToCountry />}
       {screen === 'country-to-flag' && <p>País → Bandera (próximamente)</p>}
       {screen === 'map-game' && <p>Mapa (próximamente)</p>}
       {screen === 'memory' && <p>Memory (próximamente)</p>}
