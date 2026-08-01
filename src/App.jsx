@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Album from './components/Album.jsx';
 import MainMenu from './components/MainMenu.jsx';
 
 export default function App() {
@@ -18,7 +19,7 @@ export default function App() {
       {screen === 'map-game' && <p>Mapa (próximamente)</p>}
       {screen === 'memory' && <p>Memory (próximamente)</p>}
       {screen === 'explore' && <p>Explorar mapa (próximamente)</p>}
-      {screen === 'album' && <p>Mi álbum (próximamente)</p>}
+      {screen === 'album' && <Album />}
     </main>
   );
 }
