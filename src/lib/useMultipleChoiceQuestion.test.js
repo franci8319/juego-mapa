@@ -13,13 +13,15 @@ vi.mock('./quiz.js', () => ({
   ],
 }));
 
-vi.mock('./speech.js', () => ({ speak: vi.fn() }));
+const speakMock = vi.fn();
+vi.mock('./speech.js', () => ({ speak: (...args) => speakMock(...args) }));
 
 const announce = (question) => question.correct.name;
 
 describe('useMultipleChoiceQuestion', () => {
   beforeEach(() => {
     localStorage.clear();
+    speakMock.mockClear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
@@ -73,5 +75,31 @@ describe('useMultipleChoiceQuestion', () => {
     act(() => result.current.answer({ id: 'fr', name: 'Francia' }));
     expect(result.current.wrongIds).toEqual([]);
     expect(getUnlockedIds()).toEqual(['es']);
+  });
+
+  it('starts narratingIndex at 0 on mount', () => {
+    const { result } = renderHook(() => useMultipleChoiceQuestion([], announce));
+    expect(result.current.narratingIndex).toBe(0);
+  });
+
+  it('updates narratingIndex as speak() reports each utterance starting, then resets to null on end', () => {
+    const { result } = renderHook(() => useMultipleChoiceQuestion([], announce));
+    const { onEachStart, onEnd } = speakMock.mock.calls[0][1];
+
+    act(() => onEachStart(1));
+    expect(result.current.narratingIndex).toBe(1);
+
+    act(() => onEnd());
+    expect(result.current.narratingIndex).toBeNull();
+  });
+
+  it('resets narratingIndex to 0 when replay() is called', () => {
+    const { result } = renderHook(() => useMultipleChoiceQuestion([], announce));
+    const { onEnd } = speakMock.mock.calls[0][1];
+    act(() => onEnd());
+    expect(result.current.narratingIndex).toBeNull();
+
+    act(() => result.current.replay());
+    expect(result.current.narratingIndex).toBe(0);
   });
 });

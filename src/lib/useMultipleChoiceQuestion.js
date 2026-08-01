@@ -14,6 +14,7 @@ export function useMultipleChoiceQuestion(pool, announce) {
   const [question, setQuestion] = useState(() => buildQuestion(pool));
   const [wrongIds, setWrongIds] = useState([]);
   const [feedback, setFeedback] = useState(null);
+  const [narratingIndex, setNarratingIndex] = useState(0);
 
   // Must run BEFORE the feedback effect below: on auto-advance, `question`
   // and `feedback` are both updated in the same batched tick, and this
@@ -22,7 +23,11 @@ export function useMultipleChoiceQuestion(pool, announce) {
   // is now null) avoid cutting the new announcement off. Reordering these
   // two effects would make auto-advanced questions go silent.
   useEffect(() => {
-    speak(announce(question));
+    setNarratingIndex(0);
+    speak(announce(question), {
+      onEachStart: setNarratingIndex,
+      onEnd: () => setNarratingIndex(null),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question]);
 
@@ -56,8 +61,12 @@ export function useMultipleChoiceQuestion(pool, announce) {
   );
 
   const replay = useCallback(() => {
-    speak(announce(question));
+    setNarratingIndex(0);
+    speak(announce(question), {
+      onEachStart: setNarratingIndex,
+      onEnd: () => setNarratingIndex(null),
+    });
   }, [question, announce]);
 
-  return { question, wrongIds, feedback, answer, replay };
+  return { question, wrongIds, feedback, answer, replay, narratingIndex };
 }
