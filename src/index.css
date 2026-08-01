@@ -216,3 +216,7 @@ button:disabled {
   background: #ffd60a;
   color: #1a1a2e;
 }
+
+.option--narrating:disabled {
+  opacity: 1;
+}

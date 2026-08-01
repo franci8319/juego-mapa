@@ -102,4 +102,29 @@ describe('useMultipleChoiceQuestion', () => {
     act(() => result.current.replay());
     expect(result.current.narratingIndex).toBe(0);
   });
+
+  it('ignores onEachStart/onEnd callbacks from a narration superseded by replay()', () => {
+    const { result } = renderHook(() => useMultipleChoiceQuestion([], announce));
+    const staleCall = speakMock.mock.calls[0][1];
+
+    act(() => result.current.replay());
+    expect(result.current.narratingIndex).toBe(0);
+
+    // Simulates speak()'s internal cancel() firing the PREVIOUS utterance's
+    // "end" event — it must not clear narratingIndex now that replay()
+    // has started a new narration generation.
+    act(() => staleCall.onEnd());
+    expect(result.current.narratingIndex).toBe(0);
+  });
+
+  it('recovers via a watchdog timeout if speechSynthesis never reports onEnd', () => {
+    const { result } = renderHook(() => useMultipleChoiceQuestion([], announce));
+    expect(result.current.narratingIndex).toBe(0);
+
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+
+    expect(result.current.narratingIndex).toBeNull();
+  });
 });

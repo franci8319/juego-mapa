@@ -22,6 +22,8 @@ describe('FlagToCountry', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    delete window.speechSynthesis;
+    delete global.SpeechSynthesisUtterance;
   });
 
   it('shows the flag to guess, a replay button, and 4 country name options', () => {
@@ -110,8 +112,5 @@ describe('FlagToCountry', () => {
     });
     expect(screen.getByRole('button', { name: 'España' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Francia' })).not.toHaveClass('option--narrating');
-
-    delete window.speechSynthesis;
-    delete global.SpeechSynthesisUtterance;
   });
 });

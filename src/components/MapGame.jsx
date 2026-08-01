@@ -111,8 +111,12 @@ export default function MapGame() {
         🔊
       </button>
       <ComposableMap>
+        {/* The transition class is only applied while isZooming: it must
+            drop off once the intro animation ends, or it also smears the
+            child's own drag/pinch gestures afterward (every pan frame would
+            animate over 4s instead of tracking the finger instantly). */}
         <ZoomableGroup
-          className="map-game-zoom"
+          className={isZooming ? 'map-game-zoom' : ''}
           center={mapView.center}
           zoom={mapView.zoom}
           minZoom={1}

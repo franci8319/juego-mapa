@@ -33,4 +33,9 @@ describe('MainMenu', () => {
     render(<MainMenu onNavigate={() => {}} />);
     expect(screen.getByRole('button', { name: 'Bandera → País' })).toBeInTheDocument();
   });
+
+  it('renders exactly 5 screens now that Memory has been removed', () => {
+    render(<MainMenu onNavigate={() => {}} />);
+    expect(screen.getAllByRole('button')).toHaveLength(5);
+  });
 });

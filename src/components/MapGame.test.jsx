@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MapGame from './MapGame.jsx';
 import { getUnlockedIds } from '../lib/progress.js';
 import { pickRandomCountry } from '../lib/quiz.js';
+import { getCentroid } from '../lib/worldAtlas.js';
 
 vi.mock('../lib/quiz.js', () => ({
   pickRandomCountry: vi.fn(() => ({ id: 'es', name: 'España', flagCode: 'es' })),
@@ -50,7 +51,7 @@ vi.mock('../lib/worldAtlas.js', () => ({
     ],
   },
   hasMapGeometry: (flagCode) => flagCode === 'es' || flagCode === 'fr',
-  getCentroid: () => [0, 0],
+  getCentroid: vi.fn(() => [0, 0]),
 }));
 
 // react-simple-maps' ZoomableGroup wires a native "mousedown.zoom" d3-zoom
@@ -68,6 +69,7 @@ describe('MapGame', () => {
     localStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     pickRandomCountry.mockClear();
+    getCentroid.mockClear();
   });
 
   afterEach(() => {
@@ -168,5 +170,30 @@ describe('MapGame', () => {
   it('never shows a "Siguiente" button', () => {
     render(<MapGame />);
     expect(screen.queryByRole('button', { name: 'Siguiente' })).not.toBeInTheDocument();
+  });
+
+  it('still locks map clicks 1ms before the zoom-in animation finishes', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS - 1);
+    });
+    fireEvent.click(screen.getByTestId('geo-724'));
+    expect(getUnlockedIds()).toEqual([]);
+  });
+
+  it('applies the map-game-zoom transition class only while the zoom-in animation is running', () => {
+    const { container } = render(<MapGame />);
+    expect(container.querySelector('.map-game-zoom')).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+
+    expect(container.querySelector('.map-game-zoom')).toBeFalsy();
+  });
+
+  it('computes the zoom center from the real target centroid', () => {
+    render(<MapGame />);
+    expect(getCentroid).toHaveBeenCalledWith('es');
   });
 });
