@@ -2,19 +2,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ExploreMap from './ExploreMap.jsx';
 
-// Deviation from the brief: the brief's test used `userEvent.click`, but
-// react-simple-maps' ZoomableGroup wires up d3-zoom's native "mousedown.zoom"
-// listener on the <svg> (for pan/zoom gestures). userEvent.click dispatches a
-// full pointerdown/mousedown/mouseup/click sequence, and that mousedown reaches
-// d3-zoom's handler, which reads `event.view` and `svg.viewBox.baseVal` —
-// neither of which jsdom populates for synthetic events, so d3-zoom throws
-// uncaught exceptions (visible in stderr, and enough to make `vitest run`
-// exit non-zero even though the assertions all pass). This is a jsdom/d3-zoom
-// incompatibility, not a bug in ExploreMap — real browsers implement both
-// fully, and clicking a <Geography> only ever needs a plain "click" for
-// React's onClick handler. Using `fireEvent.click`, which dispatches only a
-// "click" event, exercises the exact same onClick handler without touching
-// d3-zoom's separate mousedown-based gesture listener.
 vi.mock('../lib/worldAtlas.js', () => ({
   worldAtlasTopology: {
     type: 'Topology',
@@ -50,8 +37,41 @@ describe('ExploreMap', () => {
     localStorage.clear();
   });
 
+  it('shows a continent picker with 5 continents and a "whole world" option', () => {
+    render(<ExploreMap />);
+    expect(screen.getByRole('button', { name: 'América' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Europa' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'África' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Asia' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Oceanía' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver el mundo entero' })).toBeInTheDocument();
+  });
+
+  it('shows the map and a way back after choosing "Ver el mundo entero"', () => {
+    render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
+    expect(screen.getByTestId('geo-724')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '◀ Elegir otro continente' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Europa' })).not.toBeInTheDocument();
+  });
+
+  it('shows the map after choosing a specific continent', () => {
+    render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Europa' }));
+    expect(screen.getByTestId('geo-724')).toBeInTheDocument();
+  });
+
+  it('returns to the picker when "Elegir otro continente" is clicked', () => {
+    render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Europa' }));
+    fireEvent.click(screen.getByRole('button', { name: '◀ Elegir otro continente' }));
+    expect(screen.getByRole('button', { name: 'Europa' })).toBeInTheDocument();
+    expect(screen.queryByTestId('geo-724')).not.toBeInTheDocument();
+  });
+
   it('shows name, flag and locked status for a dataset country', () => {
     render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
     fireEvent.click(screen.getByTestId('geo-724'));
     expect(screen.getByText('España')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'España' })).toBeInTheDocument();
@@ -61,12 +81,14 @@ describe('ExploreMap', () => {
   it('shows unlocked status when the country is already in the album', () => {
     localStorage.setItem('banderas-mundial-progress', JSON.stringify(['ar']));
     render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
     fireEvent.click(screen.getByTestId('geo-32'));
     expect(screen.getByText('¡Ya tienes este cromo!')).toBeInTheDocument();
   });
 
   it('shows only the name for a country outside the dataset', () => {
     render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
     fireEvent.click(screen.getByTestId('geo-156'));
     expect(screen.getByText('China')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
