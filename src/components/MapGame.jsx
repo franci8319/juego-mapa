@@ -27,10 +27,18 @@ export default function MapGame() {
   const [feedback, setFeedback] = useState(null);
   const [wrongGeoId, setWrongGeoId] = useState(null);
 
+  // Must run BEFORE the feedback effect below: on auto-advance, `target`
+  // and `feedback` are both updated in the same batched tick, and this
+  // effect running first (and calling speak(), which cancels any prior
+  // utterance) is what lets the feedback effect's early-return (feedback
+  // is now null) avoid cutting the new announcement off. Reordering these
+  // two effects would make auto-advanced questions go silent.
   useEffect(() => {
     speak(announceTarget(target));
   }, [target]);
 
+  // Must run AFTER the "announce target" effect above — see the comment
+  // there for why the ordering matters.
   useEffect(() => {
     if (!feedback) return undefined;
     speak(feedback.message);

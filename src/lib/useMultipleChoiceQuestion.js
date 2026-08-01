@@ -15,11 +15,19 @@ export function useMultipleChoiceQuestion(pool, announce) {
   const [wrongIds, setWrongIds] = useState([]);
   const [feedback, setFeedback] = useState(null);
 
+  // Must run BEFORE the feedback effect below: on auto-advance, `question`
+  // and `feedback` are both updated in the same batched tick, and this
+  // effect running first (and calling speak(), which cancels any prior
+  // utterance) is what lets the feedback effect's early-return (feedback
+  // is now null) avoid cutting the new announcement off. Reordering these
+  // two effects would make auto-advanced questions go silent.
   useEffect(() => {
     speak(announce(question));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question]);
 
+  // Must run AFTER the "announce question" effect above — see the comment
+  // there for why the ordering matters.
   useEffect(() => {
     if (!feedback) return undefined;
     speak(feedback.message);
