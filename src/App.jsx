@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Album from './components/Album.jsx';
 import CountryToFlag from './components/CountryToFlag.jsx';
+import ExploreMap from './components/ExploreMap.jsx';
 import FlagToCountry from './components/FlagToCountry.jsx';
 import MainMenu from './components/MainMenu.jsx';
 import MapGame from './components/MapGame.jsx';
@@ -22,7 +23,7 @@ export default function App() {
       {screen === 'country-to-flag' && <CountryToFlag />}
       {screen === 'map-game' && <MapGame />}
       {screen === 'memory' && <MemoryGame />}
-      {screen === 'explore' && <p>Explorar mapa (próximamente)</p>}
+      {screen === 'explore' && <ExploreMap />}
       {screen === 'album' && <Album />}
     </main>
   );
