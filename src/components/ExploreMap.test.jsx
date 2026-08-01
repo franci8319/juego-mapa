@@ -2,6 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ExploreMap from './ExploreMap.jsx';
 
+// hasMapGeometry/getCentroid here only recognize 'es' and 'ar' — both real
+// entries in src/data/paises.js (continent 'europa' and 'america'
+// respectively) — and both resolve to the SAME fixed centroid. That keeps
+// getContinentView's real computation deterministic for this test file
+// without needing to hardcode real-world geographic values here (those are
+// already covered by continentView.test.js's own dedicated tests).
 vi.mock('../lib/worldAtlas.js', () => ({
   worldAtlasTopology: {
     type: 'Topology',
@@ -30,6 +36,8 @@ vi.mock('../lib/worldAtlas.js', () => ({
       ],
     ],
   },
+  hasMapGeometry: (flagCode) => flagCode === 'es' || flagCode === 'ar',
+  getCentroid: (flagCode) => (flagCode === 'es' || flagCode === 'ar' ? [10, 20] : null),
 }));
 
 describe('ExploreMap', () => {
@@ -45,6 +53,15 @@ describe('ExploreMap', () => {
     expect(screen.getByRole('button', { name: 'Asia' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Oceanía' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ver el mundo entero' })).toBeInTheDocument();
+  });
+
+  it('shows a distinct icon for every continent card', () => {
+    render(<ExploreMap />);
+    expect(screen.getByText('🌎')).toBeInTheDocument();
+    expect(screen.getByText('🏰')).toBeInTheDocument();
+    expect(screen.getByText('🦁')).toBeInTheDocument();
+    expect(screen.getByText('🐉')).toBeInTheDocument();
+    expect(screen.getByText('🐨')).toBeInTheDocument();
   });
 
   it('shows the map and a way back after choosing "Ver el mundo entero"', () => {
@@ -102,5 +119,17 @@ describe('ExploreMap', () => {
     fireEvent.click(screen.getByRole('button', { name: '◀ Elegir otro continente' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
     expect(screen.queryByText('España')).not.toBeInTheDocument();
+  });
+
+  it('does not show flag emoji markers at the default world zoom', () => {
+    render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el mundo entero' }));
+    expect(screen.queryByText('🇪🇸')).not.toBeInTheDocument();
+  });
+
+  it('shows flag emoji markers once a continent is zoomed in enough', () => {
+    render(<ExploreMap />);
+    fireEvent.click(screen.getByRole('button', { name: 'Europa' }));
+    expect(screen.getByText('🇪🇸')).toBeInTheDocument();
   });
 });
