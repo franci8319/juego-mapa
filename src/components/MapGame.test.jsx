@@ -1,8 +1,13 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MapGame from './MapGame.jsx';
 import { getUnlockedIds } from '../lib/progress.js';
+
+// See ExploreMap.test.jsx's comment for why fireEvent.click (not
+// userEvent.click) is required here: ZoomableGroup wires up d3-zoom's
+// native "mousedown.zoom" listener, which throws in jsdom on the
+// mousedown that userEvent.click dispatches as part of its full
+// pointerdown/mousedown/mouseup/click sequence.
 
 vi.mock('../lib/quiz.js', () => ({
   pickRandomCountry: () => ({ id: 'es', name: 'España', flagCode: 'es' }),
@@ -59,14 +64,14 @@ describe('MapGame', () => {
 
   it('unlocks the country and shows success feedback when the right polygon is clicked', async () => {
     render(<MapGame />);
-    await userEvent.click(screen.getByTestId('geo-724'));
+    fireEvent.click(screen.getByTestId('geo-724'));
     expect(await screen.findByText('¡Genial! Es España')).toBeInTheDocument();
     expect(getUnlockedIds()).toEqual(['es']);
   });
 
   it('shows encouraging feedback without unlocking on a wrong polygon', async () => {
     render(<MapGame />);
-    await userEvent.click(screen.getByTestId('geo-250'));
+    fireEvent.click(screen.getByTestId('geo-250'));
     expect(await screen.findByText('Casi... era España')).toBeInTheDocument();
     expect(getUnlockedIds()).toEqual([]);
   });

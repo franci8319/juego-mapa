@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
 import { paises } from '../data/paises.js';
 import { pickRandomCountry } from '../lib/quiz.js';
 import { matchesGeography } from '../lib/isoMap.js';
@@ -33,18 +33,20 @@ export default function MapGame() {
     <section className="game map-game">
       <FlagIcon code={target.flagCode} label={`Encuentra: ${target.name}`} size="large" />
       <ComposableMap>
-        <Geographies geography={worldAtlasTopology}>
-          {({ geographies }) =>
-            geographies.map((geo) => (
-              <Geography
-                key={geo.rsmKey}
-                geography={geo}
-                data-testid={`geo-${geo.id}`}
-                onClick={() => handleGeographyClick(geo)}
-              />
-            ))
-          }
-        </Geographies>
+        <ZoomableGroup zoom={1} minZoom={1} maxZoom={8}>
+          <Geographies geography={worldAtlasTopology}>
+            {({ geographies }) =>
+              geographies.map((geo) => (
+                <Geography
+                  key={geo.rsmKey}
+                  geography={geo}
+                  data-testid={`geo-${geo.id}`}
+                  onClick={() => handleGeographyClick(geo)}
+                />
+              ))
+            }
+          </Geographies>
+        </ZoomableGroup>
       </ComposableMap>
       {feedback && (
         <div className={feedback.correct ? 'feedback feedback--correct' : 'feedback feedback--incorrect'}>
