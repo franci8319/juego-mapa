@@ -7,9 +7,18 @@ import FlagIcon from './FlagIcon.jsx';
 const PAIR_COUNT = 6;
 
 export default function MemoryGame() {
-  const [deck] = useState(() => buildDeck(paises, PAIR_COUNT));
+  const [deck, setDeck] = useState(() => buildDeck(paises, PAIR_COUNT));
   const [flipped, setFlipped] = useState([]);
   const [matchedIds, setMatchedIds] = useState([]);
+
+  const totalPairs = deck.length / 2;
+  const isComplete = matchedIds.length === totalPairs;
+
+  const handlePlayAgain = () => {
+    setDeck(buildDeck(paises, PAIR_COUNT));
+    setFlipped([]);
+    setMatchedIds([]);
+  };
 
   const handleFlip = (card) => {
     const isAlreadyVisible = flipped.some((f) => f.key === card.key) || matchedIds.includes(card.countryId);
@@ -59,6 +68,14 @@ export default function MemoryGame() {
           );
         })}
       </div>
+      {isComplete && (
+        <div className="feedback feedback--correct">
+          <p>¡Los encontraste todos!</p>
+          <button type="button" onClick={handlePlayAgain}>
+            Jugar otra vez
+          </button>
+        </div>
+      )}
     </section>
   );
 }

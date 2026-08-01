@@ -50,4 +50,47 @@ describe('MemoryGame', () => {
     expect(screen.getAllByRole('button', { name: '?' })).toHaveLength(4);
     expect(getUnlockedIds()).toEqual([]);
   });
+
+  it('shows a congratulation message and a replay button once every pair is matched', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<MemoryGame />);
+
+    await user.click(screen.getAllByRole('button', { name: '?' })[0]); // es-flag
+    await user.click(screen.getAllByRole('button', { name: '?' })[1]); // es-name (index shifts)
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.queryByText(/jugar otra vez/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: '?' })[0]); // fr-flag
+    await user.click(screen.getAllByRole('button', { name: '?' })[0]); // fr-name (index shifts)
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.getByText('¡Los encontraste todos!')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /jugar otra vez/i })).toBeInTheDocument();
+  });
+
+  it('resets to a fresh, all-face-down board when "Jugar otra vez" is clicked', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<MemoryGame />);
+
+    await user.click(screen.getAllByRole('button', { name: '?' })[0]); // es-flag
+    await user.click(screen.getAllByRole('button', { name: '?' })[1]); // es-name
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    await user.click(screen.getAllByRole('button', { name: '?' })[0]); // fr-flag
+    await user.click(screen.getAllByRole('button', { name: '?' })[0]); // fr-name
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    await user.click(screen.getByRole('button', { name: /jugar otra vez/i }));
+
+    expect(screen.queryByText('¡Los encontraste todos!')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '?' })).toHaveLength(4);
+  });
 });
