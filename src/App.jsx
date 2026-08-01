@@ -3,6 +3,7 @@ import Album from './components/Album.jsx';
 import CountryToFlag from './components/CountryToFlag.jsx';
 import FlagToCountry from './components/FlagToCountry.jsx';
 import MainMenu from './components/MainMenu.jsx';
+import MemoryGame from './components/MemoryGame.jsx';
 
 export default function App() {
   const [screen, setScreen] = useState('menu');
@@ -19,7 +20,7 @@ export default function App() {
       {screen === 'flag-to-country' && <FlagToCountry />}
       {screen === 'country-to-flag' && <CountryToFlag />}
       {screen === 'map-game' && <p>Mapa (próximamente)</p>}
-      {screen === 'memory' && <p>Memory (próximamente)</p>}
+      {screen === 'memory' && <MemoryGame />}
       {screen === 'explore' && <p>Explorar mapa (próximamente)</p>}
       {screen === 'album' && <Album />}
     </main>
