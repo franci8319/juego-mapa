@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
 import { paises } from '../data/paises.js';
 import { pickWeightedCountry } from '../lib/quiz.js';
@@ -23,7 +24,9 @@ const WRONG_FLASH_MS = 700;
 // two different places (React's click-lock timer and the CSS transition).
 const ZOOM_DURATION_MS = 4000;
 const ZOOM_START_DELAY_MS = 50; // lets the world-view frame paint before animating to the target
-const TARGET_ZOOM = 4;
+// Zoomed in enough that small, tightly-packed European countries are still
+// big enough to tap on a phone screen (4 left several of them too small).
+const TARGET_ZOOM = 6;
 const WORLD_VIEW = { center: [0, 0], zoom: 1 };
 
 function announceTarget(target) {
@@ -40,7 +43,7 @@ function pickNextTarget(revealedIds, correctCount) {
   return pickWeightedCountry(pool, correctCount);
 }
 
-export default function MapGame() {
+export default function MapGame({ headerActions } = {}) {
   const [target, setTarget] = useState(() => pickNextTarget([], 0));
   const [correctCount, setCorrectCount] = useState(0);
   const [feedback, setFeedback] = useState(null);
@@ -129,12 +132,20 @@ export default function MapGame() {
     speak(announceTarget(target));
   }, [target]);
 
+  const replayButton = (
+    <button type="button" className="replay-button" onClick={replay} aria-label="Repetir en voz alta">
+      🔊
+    </button>
+  );
+
   return (
     <section className="game map-game">
       <FlagIcon code={target.flagCode} label={`Encuentra: ${target.name}`} size="large" />
-      <button type="button" className="replay-button" onClick={replay} aria-label="Repetir en voz alta">
-        🔊
-      </button>
+      {/* Rendered next to the "◀ Menú" button (via a portal into App's
+          header row) when available, so it doesn't take up its own row
+          above the map. Falls back to rendering inline here when no portal
+          target is supplied (e.g. tests rendering MapGame standalone). */}
+      {headerActions ? createPortal(replayButton, headerActions) : replayButton}
       <ComposableMap>
         {/* The transition class is only applied while isZooming: it must
             drop off once the intro animation ends, or it also smears the

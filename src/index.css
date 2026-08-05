@@ -224,6 +224,25 @@ button:disabled {
   background: #6c757d;
 }
 
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.header-actions:empty {
+  display: none;
+}
+
+/* Half the normal large-flag size, freeing up vertical space for the map
+   itself — European countries especially need the extra room MapGame's
+   higher zoom now uses. */
+.map-game .flag-icon--large {
+  width: 110px;
+  height: 74px;
+}
+
 .continent-picker {
   display: flex;
   flex-wrap: wrap;
