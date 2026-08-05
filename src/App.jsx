@@ -30,6 +30,7 @@ export default function App() {
       {screen === 'map-game' && <MapGame headerActions={headerActions} />}
       {screen === 'explore' && <ExploreMap />}
       {screen === 'album' && <Album />}
+      <footer className="app-footer">Países y banderas, para mi hijo Alejandro</footer>
     </main>
   );
 }

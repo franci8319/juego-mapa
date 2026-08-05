@@ -175,6 +175,14 @@ button:disabled {
   padding: 0.5rem;
 }
 
+/* Options are disabled to lock input once answered, but that shouldn't dim
+   every flag with the default disabled opacity — only the marked option
+   (green for correct, red for wrong) should stand out; the rest should stay
+   at full opacity, same as while the question is still open. */
+.country-to-flag .options button:disabled {
+  opacity: 1;
+}
+
 .flag-to-country .options {
   display: flex;
   flex-direction: column;
@@ -282,4 +290,14 @@ button:disabled {
 
 .continent-card__label {
   font-size: 0.9rem;
+}
+
+.app-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: #6c757d;
+  text-align: center;
 }
