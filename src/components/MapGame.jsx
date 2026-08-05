@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
 import { paises } from '../data/paises.js';
 import { pickWeightedCountry } from '../lib/quiz.js';
-import { matchesGeography } from '../lib/isoMap.js';
+import { matchesGeography, toNumericId } from '../lib/isoMap.js';
 import { unlockCountry } from '../lib/progress.js';
 import { getCentroid, hasMapGeometry, worldAtlasTopology } from '../lib/worldAtlas.js';
 import { getFlagEmoji } from '../lib/flagEmoji.js';
@@ -19,6 +19,14 @@ const mappableCountries = paises.filter((pais) => hasMapGeometry(pais.flagCode))
 
 const ADVANCE_DELAY_MS = 1800;
 const WRONG_FLASH_MS = 700;
+// After this many wrong taps on the same country, the app selects it for
+// the child instead of leaving them stuck — better for learning than
+// endless frustration. It stays highlighted for REVEAL_ADVANCE_DELAY_MS so
+// there's time to actually look at it before the game moves on.
+const MAX_WRONG_ATTEMPTS = 5;
+const REVEAL_ADVANCE_DELAY_MS = 3500;
+const REVEAL_STYLE = { default: { fill: '#d90429', stroke: '#ffffff', strokeWidth: 1 } };
+const CHILD_NAME = 'Alejandro';
 // Keep ZOOM_DURATION_MS in sync with the transition duration on
 // `.map-game-zoom` in src/index.css — they drive the same animation from
 // two different places (React's click-lock timer and the CSS transition).
@@ -48,6 +56,10 @@ export default function MapGame({ headerActions } = {}) {
   const [correctCount, setCorrectCount] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [wrongGeoId, setWrongGeoId] = useState(null);
+  // Counts wrong taps on the current target only — reset by the effect
+  // below whenever `target` changes, so it never carries over to the next
+  // country.
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [mapView, setMapView] = useState(WORLD_VIEW);
   const [isZooming, setIsZooming] = useState(true);
   // Session-only: which countries the child has already found this visit,
@@ -101,7 +113,7 @@ export default function MapGame({ headerActions } = {}) {
       setWrongGeoId(null);
       setCorrectCount(nextCorrectCount);
       setTarget(pickNextTarget(revealedFlags, nextCorrectCount));
-    }, ADVANCE_DELAY_MS);
+    }, feedback.revealed ? REVEAL_ADVANCE_DELAY_MS : ADVANCE_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedback]);
@@ -112,6 +124,10 @@ export default function MapGame({ headerActions } = {}) {
     return () => clearTimeout(timer);
   }, [wrongGeoId]);
 
+  useEffect(() => {
+    setWrongAttempts(0);
+  }, [target]);
+
   const handleGeographyClick = useCallback(
     (geo) => {
       if (feedback?.correct || isZooming) return;
@@ -120,12 +136,25 @@ export default function MapGame({ headerActions } = {}) {
         setFeedback({ correct: true, message: `¡Genial! Es ${target.name}` });
         setWrongGeoId(null);
         setRevealedFlags((prev) => (prev.includes(target.id) ? prev : [...prev, target.id]));
+        return;
+      }
+      const attempts = wrongAttempts + 1;
+      setWrongAttempts(attempts);
+      if (attempts >= MAX_WRONG_ATTEMPTS) {
+        unlockCountry(target.id);
+        setFeedback({
+          correct: true,
+          revealed: true,
+          message: `Es ${target.name}. ¡Casi lo consigues, has estado muy cerca! Sigue así, ${CHILD_NAME}.`,
+        });
+        setWrongGeoId(null);
+        setRevealedFlags((prev) => (prev.includes(target.id) ? prev : [...prev, target.id]));
       } else {
         setFeedback({ correct: false, message: 'Prueba con otra' });
         setWrongGeoId(geo.id);
       }
     },
-    [target, feedback, isZooming]
+    [target, feedback, isZooming, wrongAttempts]
   );
 
   const replay = useCallback(() => {
@@ -167,8 +196,8 @@ export default function MapGame({ headerActions } = {}) {
                   data-testid={`geo-${geo.id}`}
                   onClick={() => handleGeographyClick(geo)}
                   style={
-                    geo.id === wrongGeoId
-                      ? { default: { fill: '#d90429', stroke: '#ffffff', strokeWidth: 1 } }
+                    geo.id === wrongGeoId || (feedback?.revealed && geo.id === toNumericId(target.flagCode))
+                      ? REVEAL_STYLE
                       : undefined
                   }
                 />

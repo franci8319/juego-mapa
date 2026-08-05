@@ -221,4 +221,80 @@ describe('MapGame', () => {
 
     expect(screen.getByText('🇪🇸')).toBeInTheDocument();
   });
+
+  it('does not auto-reveal before the 5th wrong attempt', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    const wrongGeo = screen.getByTestId('geo-250');
+    for (let i = 0; i < 4; i += 1) {
+      fireEvent.click(wrongGeo);
+    }
+    expect(getUnlockedIds()).toEqual([]);
+    expect(screen.getByText('Prueba con otra')).toBeInTheDocument();
+  });
+
+  it('auto-reveals the correct country in red on the 5th wrong attempt, with an encouraging message', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    const wrongGeo = screen.getByTestId('geo-250');
+    const targetGeo = screen.getByTestId('geo-724');
+    for (let i = 0; i < 5; i += 1) {
+      fireEvent.click(wrongGeo);
+    }
+    expect(getUnlockedIds()).toEqual(['es']);
+    expect(targetGeo.style.fill).toBe('#d90429');
+    expect(screen.getByText(/Alejandro/)).toBeInTheDocument();
+  });
+
+  it('keeps the auto-revealed country highlighted for a few seconds before advancing', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    const wrongGeo = screen.getByTestId('geo-250');
+    const targetGeo = screen.getByTestId('geo-724');
+    for (let i = 0; i < 5; i += 1) {
+      fireEvent.click(wrongGeo);
+    }
+    act(() => {
+      vi.advanceTimersByTime(3499);
+    });
+    expect(targetGeo.style.fill).toBe('#d90429');
+    expect(screen.getByText(/Alejandro/)).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.queryByText(/Alejandro/)).not.toBeInTheDocument();
+  });
+
+  it('resets the wrong-attempt count for the next country after an auto-reveal', () => {
+    render(<MapGame />);
+    act(() => {
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+    const wrongGeo = screen.getByTestId('geo-250');
+    for (let i = 0; i < 5; i += 1) {
+      fireEvent.click(wrongGeo);
+    }
+    act(() => {
+      vi.advanceTimersByTime(3500);
+    });
+    act(() => {
+      // Advancing to the next target restarts its own intro zoom, which
+      // locks clicks again for ZOOM_LOCK_MS — same as after any normal
+      // correct answer.
+      vi.advanceTimersByTime(ZOOM_LOCK_MS);
+    });
+
+    // Re-query: the map re-renders fresh geography nodes for the new
+    // target, so the earlier `wrongGeo` reference is stale.
+    fireEvent.click(screen.getByTestId('geo-250'));
+    expect(screen.getByText('Prueba con otra')).toBeInTheDocument();
+    expect(screen.queryByText(/Alejandro/)).not.toBeInTheDocument();
+  });
 });
