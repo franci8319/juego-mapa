@@ -17,4 +17,12 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: '◀ Menú' }));
     expect(screen.queryByRole('button', { name: '◀ Menú' })).not.toBeInTheDocument();
   });
+
+  it('shows the footer credit only on the menu, not inside a game', async () => {
+    render(<App />);
+    expect(screen.getByText('Países y banderas, para mi hijo Alejandro')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mi álbum' }));
+    expect(screen.queryByText('Países y banderas, para mi hijo Alejandro')).not.toBeInTheDocument();
+  });
 });
