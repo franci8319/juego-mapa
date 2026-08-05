@@ -30,8 +30,8 @@ export default function ExploreMap() {
 
   const zoomProps =
     continent === 'world' || !continent
-      ? { zoom: 1, minZoom: 1, maxZoom: 8 }
-      : { ...getContinentView(continent.id), minZoom: 1, maxZoom: 8 };
+      ? { zoom: 1, minZoom: 1, maxZoom: 20 }
+      : { ...getContinentView(continent.id), minZoom: 1, maxZoom: 20 };
 
   // Syncs liveZoom to the newly-selected continent's computed zoom (or 1 for
   // "world"). onMoveEnd (in the JSX below) then keeps it live as the user

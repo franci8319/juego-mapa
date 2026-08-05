@@ -185,7 +185,7 @@ export default function MapGame({ headerActions } = {}) {
           center={mapView.center}
           zoom={mapView.zoom}
           minZoom={1}
-          maxZoom={8}
+          maxZoom={20}
         >
           <Geographies geography={worldAtlasTopology}>
             {({ geographies }) =>
