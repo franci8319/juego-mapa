@@ -10,13 +10,23 @@ const ADVANCE_DELAY_MS = 1800;
 // forever.
 const NARRATION_TIMEOUT_MS = 10000;
 
-function buildQuestion(pool) {
-  const correct = pickRandomCountry(pool);
+// Excludes countries already asked this session so questions don't repeat
+// while there are still unasked ones — once every country in the pool has
+// come up, falls back to the full pool so the game keeps going instead of
+// running out of questions.
+function buildQuestion(pool, askedIds) {
+  const remaining = pool.filter((c) => !askedIds.includes(c.id));
+  const eligiblePool = remaining.length > 0 ? remaining : pool;
+  const correct = pickRandomCountry(eligiblePool);
   return { correct, options: buildOptions(pool, correct) };
 }
 
 export function useMultipleChoiceQuestion(pool, announce) {
-  const [question, setQuestion] = useState(() => buildQuestion(pool));
+  const [question, setQuestion] = useState(() => buildQuestion(pool, []));
+  // Session-only record of which countries have already been asked, so the
+  // same one doesn't come up twice in a row. Not persisted — resets every
+  // time this screen is left and re-entered.
+  const [askedIds, setAskedIds] = useState([]);
   const [wrongIds, setWrongIds] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [narratingIndex, setNarratingIndex] = useState(0);
@@ -67,10 +77,17 @@ export function useMultipleChoiceQuestion(pool, announce) {
     if (!feedback) return undefined;
     speak(feedback.message);
     if (!feedback.correct) return undefined;
+    // askedIds is read from this render's closure rather than added to the
+    // dependency array below: it only ever changes together with feedback
+    // (both set in this same timeout), so the closure can't go stale
+    // independently of feedback changing too — same reasoning as MapGame's
+    // equivalent revealedFlags/correctCount pattern.
+    const nextAsked = askedIds.includes(question.correct.id) ? askedIds : [...askedIds, question.correct.id];
     const timer = setTimeout(() => {
       setWrongIds([]);
       setFeedback(null);
-      setQuestion(buildQuestion(pool));
+      setAskedIds(nextAsked);
+      setQuestion(buildQuestion(pool, nextAsked));
     }, ADVANCE_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -2,9 +2,10 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMultipleChoiceQuestion } from './useMultipleChoiceQuestion.js';
 import { getUnlockedIds } from './progress.js';
+import { pickRandomCountry } from './quiz.js';
 
 vi.mock('./quiz.js', () => ({
-  pickRandomCountry: () => ({ id: 'es', name: 'España', flagCode: 'es' }),
+  pickRandomCountry: vi.fn(() => ({ id: 'es', name: 'España', flagCode: 'es' })),
   buildOptions: () => [
     { id: 'es', name: 'España', flagCode: 'es' },
     { id: 'fr', name: 'Francia', flagCode: 'fr' },
@@ -22,6 +23,7 @@ describe('useMultipleChoiceQuestion', () => {
   beforeEach(() => {
     localStorage.clear();
     speakMock.mockClear();
+    pickRandomCountry.mockClear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
@@ -67,6 +69,34 @@ describe('useMultipleChoiceQuestion', () => {
 
     expect(result.current.feedback).toBeNull();
     expect(result.current.wrongIds).toEqual([]);
+  });
+
+  it('excludes already-asked countries from the next question pool', () => {
+    const pool = [
+      { id: 'es', name: 'España', flagCode: 'es' },
+      { id: 'fr', name: 'Francia', flagCode: 'fr' },
+    ];
+    const { result } = renderHook(() => useMultipleChoiceQuestion(pool, announce));
+    act(() => result.current.answer({ id: 'es', name: 'España' }));
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+
+    const [secondPool] = pickRandomCountry.mock.calls[1];
+    expect(secondPool.some((c) => c.id === 'es')).toBe(false);
+    expect(secondPool.some((c) => c.id === 'fr')).toBe(true);
+  });
+
+  it('falls back to the full pool once every country has already been asked', () => {
+    const pool = [{ id: 'es', name: 'España', flagCode: 'es' }];
+    const { result } = renderHook(() => useMultipleChoiceQuestion(pool, announce));
+    act(() => result.current.answer({ id: 'es', name: 'España' }));
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+
+    const [secondPool] = pickRandomCountry.mock.calls[1];
+    expect(secondPool).toEqual(pool);
   });
 
   it('ignores further answers once the correct one has been given', () => {
