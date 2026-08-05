@@ -94,7 +94,10 @@ export default function ExploreMap() {
       >
         ◀ Elegir otro continente
       </button>
-      <ComposableMap>
+      {/* Taller than the library's 800x600 default so the map uses more of
+          a portrait phone screen instead of leaving a blank strip below it
+          — see the matching comment in MapGame.jsx. */}
+      <ComposableMap width={800} height={950}>
         <ZoomableGroup {...zoomProps} onMoveEnd={({ zoom }) => setLiveZoom(zoom)}>
           <Geographies geography={worldAtlasTopology}>
             {({ geographies }) =>

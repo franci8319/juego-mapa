@@ -175,7 +175,13 @@ export default function MapGame({ headerActions } = {}) {
           above the map. Falls back to rendering inline here when no portal
           target is supplied (e.g. tests rendering MapGame standalone). */}
       {headerActions ? createPortal(replayButton, headerActions) : replayButton}
-      <ComposableMap>
+      {/* Taller than the library's 800x600 default: on a portrait phone,
+          the default landscape-ish box left a big unused strip below the
+          map. This doesn't crop any playable country — react-simple-maps
+          recomputes the projection (and ZoomableGroup's target centering)
+          from this width/height, it just gives the map a taller canvas to
+          render into. */}
+      <ComposableMap width={800} height={950}>
         {/* The transition class is only applied while isZooming: it must
             drop off once the intro animation ends, or it also smears the
             child's own drag/pinch gestures afterward (every pan frame would
